@@ -129,13 +129,14 @@ main(int argc, char **argv)
     return(1);
   }
   if(setresgid(rgid, rgid, rgid) < 0) {
-    fprintf(stderr, "Failed to set the gid to correct level %d\n");
+    fprintf(stderr, "Failed to set the gid to correct level\n");
     return(2);
   }
   if(setresuid(ruid, ruid, ruid) < 0) {
-    fprintf(stderr, "Failed to set the uid to correct level %d\n");
+    fprintf(stderr, "Failed to set the uid to correct level\n");
     return(2);
   }
+  uid = ruid;
 
 	source.sin_family = AF_INET;
 
@@ -172,7 +173,7 @@ main(int argc, char **argv)
 		case 'I':
 		{
 			char dummy;
-			int i1, i2, i3, i4;
+			unsigned i1, i2, i3, i4;
 
 			if (sscanf(optarg, "%u.%u.%u.%u%c",
 				   &i1, &i2, &i3, &i4, &dummy) == 4) {
@@ -242,7 +243,7 @@ main(int argc, char **argv)
 			hp = gethostbyname2(target, AF_INET);
 			if (!hp) {
 				fprintf(stderr, "ping: unknown host ");
-				fprintf(stderr, target);
+				fprintf(stderr, "%s", target);
 				fprintf(stderr, "\n");
 				return(2);
 			}
@@ -266,13 +267,13 @@ main(int argc, char **argv)
 		}
 		if (device) {
 			memset(&ifr, 0, sizeof(ifr));
-			strcpy(ifr.ifr_name, device);
+			safe_strcpy(ifr.ifr_name, device);
 			if (setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device)+1) == -1) {
 				if (IN_MULTICAST(ntohl(dst.sin_addr.s_addr))) {
 					struct ip_mreqn imr;
 					if (ioctl(probe_fd, SIOCGIFINDEX, &ifr) < 0) {
 						fprintf(stderr, "ping: unknown iface ");
-						fprintf(stderr, device);
+						fprintf(stderr, "%s", device);
 						fprintf(stderr, "\n");
 						return(2);
 					}
@@ -640,6 +641,9 @@ int send_probe()
 		}
 	}
 
+  if(UINT_MAX - 8 < datalen) {
+    return(1);
+  }
 	cc = datalen + 8;			/* skips ICMP portion */
 
 	/* compute ICMP checksum here */

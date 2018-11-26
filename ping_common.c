@@ -135,7 +135,7 @@ void common_options(int ch)
 			exit(2);
 		}
 
-		if (interval < 0) {
+		if (interval <= 0) {
 			fprintf(stderr, "ping: bad timing interval.\n");
 			exit(2);
 		}
@@ -261,7 +261,7 @@ int __schedule_exit(int next)
 
 static inline void update_interval(void)
 {
-	int est = rtt ? rtt/8 : interval*1000; 
+	int est = rtt ? rtt/8 : interval*1000;
 
 	interval = (est+rtt_addend+500)/1000;
 	if (uid && interval < MINUSERINTERVAL)
@@ -282,7 +282,7 @@ int pinger(void)
 	static int tokens;
 	int i;
 
-	/* Have we already sent enough? If we have, return an arbitrary positive value. */ 
+	/* Have we already sent enough? If we have, return an arbitrary positive value. */
 	if (exiting || (npackets && ntransmitted >= npackets && !deadline))
 		return 1000;
 
@@ -535,7 +535,7 @@ void main_loop(int icmp_sock, uint8_t *packet, int packlen)
 		 * If next<=0 send now or as soon as possible. */
 
 		/* Technical part. Looks wicked. Could be dropped,
-		 * if everyone used the newest kernel. :-) 
+		 * if everyone used the newest kernel. :-)
 		 * Its purpose is:
 		 * 1. Provide intervals less than resolution of scheduler.
 		 *    Solution: spinning.
@@ -546,7 +546,7 @@ void main_loop(int icmp_sock, uint8_t *packet, int packlen)
 			int recv_expected = in_flight();
 
 			/* If we are here, recvmsg() is unable to wait for
-			 * required timeout. */ 
+			 * required timeout. */
 			if (1000*next <= 1000000/(int)HZ) {
 				/* Very short timeout... So, if we wait for
 				 * something, we sleep for MININTERVAL.
@@ -626,7 +626,7 @@ void main_loop(int icmp_sock, uint8_t *packet, int packlen)
 				not_ours = parse_reply(&msg, cc, addrbuf, recv_timep);
 			}
 
-			/* See? ... someone runs another ping on this host. */ 
+			/* See? ... someone runs another ping on this host. */
 			if (not_ours)
 				install_filter();
 
@@ -822,7 +822,7 @@ void finish(void)
 	}
 	if (pipesize > 1)
 		printf(", pipe %d", pipesize);
-	if (ntransmitted > 1 && nreceived && 
+	if (ntransmitted > 1 && nreceived &&
 			(!interval || (options&(F_FLOOD|F_ADAPTIVE)))) {
 		int ipg = (1000000*(long long)tv.tv_sec+tv.tv_usec)/(ntransmitted-1);
 		printf(", ipg/ewma %d.%03d/%d.%03d ms",

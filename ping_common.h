@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <string.h>
 #include <netdb.h>
+#include <limits.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -166,7 +167,7 @@ static inline int in_flight(void)
 }
 
 static inline void acknowledge(uint16_t seq)
-{ 
+{
 	uint16_t diff = (uint16_t)ntransmitted - seq;
 	if (diff <= 0x7FFF) {
 		if ((int)diff+1 > pipesize)
