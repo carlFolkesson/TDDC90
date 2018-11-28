@@ -1,0 +1,226 @@
+--- ping.c.org	2018-11-23 10:09:35.594390482 +0100
++++ ping.c	2018-11-28 09:17:47.648392409 +0100
+@@ -66,6 +66,7 @@
+ #include <arpa/inet.h>
+ #include <netinet/ip.h>
+ #include <netinet/ip_icmp.h>
++#include <unistd.h>
+ 
+ 
+ #define	MAXIPLEN	60
+@@ -118,10 +119,29 @@
+ 	int ch, hold, packlen;
+ 	unsigned char *packet;
+ 	char rspace[3 + 4 * NROUTES + 1];	/* record route space */
++  int probe_fd = socket(AF_INET, SOCK_DGRAM, 0);
++  icmp_sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
++  uid_t ruid, euid, suid, rgid, egid, sgid;
++  if(getresuid(&ruid, &euid, &suid) < 0) {
++    return(1);
++  }
++  if(getresgid(&rgid, &egid, &sgid) < 0) {
++    return(1);
++  }
++  if(setresgid(rgid, rgid, rgid) < 0) {
++    fprintf(stderr, "Failed to set the gid to correct level\n");
++    return(2);
++  }
++  if(setresuid(ruid, ruid, ruid) < 0) {
++    fprintf(stderr, "Failed to set the uid to correct level\n");
++    return(2);
++  }
++  uid = ruid;
+ 
+ 	source.sin_family = AF_INET;
+ 
+ 	preload = 1;
++
+ 	while ((ch = getopt(argc, argv, COMMON_OPTSTR "bRT:")) != EOF) {
+ 		switch(ch) {
+ 		case 'b':
+@@ -154,7 +174,7 @@
+ 		case 'I':
+ 		{
+ 			char dummy;
+-			int i1, i2, i3, i4;
++			unsigned i1, i2, i3, i4;
+ 
+ 			if (sscanf(optarg, "%u.%u.%u.%u%c",
+ 				   &i1, &i2, &i3, &i4, &dummy) == 4) {
+@@ -195,7 +215,7 @@
+ 	argc -= optind;
+ 	argv += optind;
+ 
+-	if (argc == 0) 
++	if (argc == 0)
+ 		usage();
+ 	if (argc > 1) {
+ 		if (options & F_RROUTE)
+@@ -224,7 +244,7 @@
+ 			hp = gethostbyname2(target, AF_INET);
+ 			if (!hp) {
+ 				fprintf(stderr, "ping: unknown host ");
+-				fprintf(stderr, target);
++				fprintf(stderr, "%s", target);
+ 				fprintf(stderr, "\n");
+ 				return(2);
+ 			}
+@@ -239,9 +259,8 @@
+ 	}
+ 
+ 	if (source.sin_addr.s_addr == 0) {
+-		int alen;
++		size_t alen;
+ 		struct sockaddr_in dst = whereto;
+-		int probe_fd = socket(AF_INET, SOCK_DGRAM, 0);
+ 
+ 		if (probe_fd < 0) {
+ 			perror("socket");
+@@ -249,13 +268,13 @@
+ 		}
+ 		if (device) {
+ 			memset(&ifr, 0, sizeof(ifr));
+-			strcpy(ifr.ifr_name, device);
++			safe_strcpy(ifr.ifr_name, device);
+ 			if (setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device)+1) == -1) {
+ 				if (IN_MULTICAST(ntohl(dst.sin_addr.s_addr))) {
+ 					struct ip_mreqn imr;
+ 					if (ioctl(probe_fd, SIOCGIFINDEX, &ifr) < 0) {
+ 						fprintf(stderr, "ping: unknown iface ");
+-						fprintf(stderr, device);
++						fprintf(stderr, "%s", device);
+ 						fprintf(stderr, "\n");
+ 						return(2);
+ 					}
+@@ -310,7 +329,7 @@
+ 		whereto.sin_addr.s_addr = source.sin_addr.s_addr;
+ 
+ 
+-	if ((icmp_sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) < 0) {
++	if (icmp_sock < 0) {
+ 		perror("ping: icmp open socket");
+ 		return(2);
+ 	}
+@@ -320,7 +339,7 @@
+ 		safe_strcpy(device, ifr.ifr_name);
+ 		if (ioctl(icmp_sock, SIOCGIFINDEX, &ifr) < 0) {
+ 		  fprintf(stderr, "ping: unknown iface ");
+-		  fprintf(stderr, device);
++		  fprintf(stderr, "%s", device);
+ 		  fprintf(stderr, "\n");
+ 		  return(2);
+ 		}
+@@ -364,11 +383,11 @@
+ 			      (1<<ICMP_PARAMETERPROB)|
+ 			      (1<<ICMP_REDIRECT)|
+ 			      (1<<ICMP_ECHOREPLY));
+-		if (setsockopt(icmp_sock, SOL_RAW, ICMP_FILTER, 
++		if (setsockopt(icmp_sock, SOL_RAW, ICMP_FILTER,
+ 				(char*)&filt, sizeof(filt)) == -1)
+ 		{
+ 			perror("WARNING: setsockopt(ICMP_FILTER)");
+-			fprintf(stderr, 
++			fprintf(stderr,
+ 				"Do you have CONFIG_SOCKET in your kernel?");
+ 		}
+ 	}
+@@ -421,7 +440,7 @@
+ 		rspace[1+IPOPT_OFFSET] = IPOPT_MINOFF;
+ 		for (i=0; i<nroute; i++)
+ 			*(uint32_t*)&rspace[4+i*4] = route[i];
+-		
++
+ 		if (setsockopt(icmp_sock, IPPROTO_IP, IP_OPTIONS, rspace, 4 + nroute*4) < 0) {
+ 			perror("ping: record route");
+ 			return(2);
+@@ -466,7 +485,7 @@
+ 	}
+ 
+ 	if (datalen > 0xFFFF - 8 - optlen - 20) {
+-		if (uid || datalen > sizeof(outpack)-8) {
++		if (uid || (size_t)datalen > sizeof(outpack)-8) {
+ 			fprintf(stderr, "Error: packet size %d is too large. Maximum is %d\n", datalen, 0xFFFF-8-20-optlen);
+ 			return(2);
+ 		}
+@@ -474,7 +493,7 @@
+ 		fprintf(stderr, "WARNING: packet size %d is too large. Maximum is %d\n", datalen, 0xFFFF-8-20-optlen);
+ 	}
+ 
+-	if (datalen >= sizeof(struct timeval))	/* can we time transfer */
++	if ((size_t)datalen >= sizeof(struct timeval))	/* can we time transfer */
+ 		timing = 1;
+ 	packlen = datalen + MAXIPLEN + MAXICMPLEN;
+ 	if (!(packet = (unsigned char *)malloc((unsigned int)packlen))) {
+@@ -483,7 +502,7 @@
+ 	}
+ 
+ 	printf("PING ");
+-	printf(hostname);
++	printf("%s", hostname);
+ 	printf("(%s) ", inet_ntoa(whereto.sin_addr));
+ 	if (device || (options&F_STRICTSOURCE))
+ 		printf("from %s %s: ", inet_ntoa(source.sin_addr), device ? device : "");
+@@ -547,7 +566,7 @@
+ 	} else if (e->ee_origin == SO_EE_ORIGIN_ICMP) {
+ 		struct sockaddr_in *sin = (struct sockaddr_in*)(e+1);
+ 
+-		if (res < sizeof(icmph) ||
++		if ((size_t)res < sizeof(icmph) ||
+ 		    target.sin_addr.s_addr != whereto.sin_addr.s_addr ||
+ 		    icmph.type != ICMP_ECHO ||
+ 		    icmph.un.echo.id != ident) {
+@@ -615,7 +634,7 @@
+ 			static volatile int fake_fucked_egcs = sizeof(struct timeval);
+ 			struct timeval tmp_tv;
+ 			gettimeofday(&tmp_tv, NULL);
+-			/* egcs is crap or glibc is crap, but memcpy 
++			/* egcs is crap or glibc is crap, but memcpy
+ 			   does not copy anything, if len is constant! */
+ 			memcpy(icp+1, &tmp_tv, fake_fucked_egcs);
+ 		} else {
+@@ -623,6 +642,9 @@
+ 		}
+ 	}
+ 
++  if(UINT_MAX - 8 < (size_t)datalen) {
++    return(1);
++  }
+ 	cc = datalen + 8;			/* skips ICMP portion */
+ 
+ 	/* compute ICMP checksum here */
+@@ -632,7 +654,7 @@
+ 		static volatile int fake_fucked_egcs = sizeof(struct timeval);
+ 	        struct timeval tmp_tv;
+ 		gettimeofday(&tmp_tv, NULL);
+-		/* egcs is crap or glibc is crap, but memcpy 
++		/* egcs is crap or glibc is crap, but memcpy
+ 		   does not copy anything, if len is constant! */
+ 		memcpy(icp+1, &tmp_tv, fake_fucked_egcs);
+ 		icp->checksum = in_cksum((unsigned short *)(icp+1), fake_fucked_egcs, ~icp->checksum);
+@@ -695,7 +717,7 @@
+ 		/* We fall here when a redirect or source quench arrived.
+ 		 * Also this branch processes icmp errors, when IP_RECVERR
+ 		 * is broken. */
+-		   
++
+ 	        switch (icp->type) {
+ 		case ICMP_ECHO:
+ 			/* MUST NOT */
+@@ -709,7 +731,7 @@
+ 				struct iphdr * iph = (struct  iphdr *)(&icp[1]);
+ 				struct icmphdr *icp1 = (struct icmphdr*)((unsigned char *)iph + iph->ihl*4);
+ 				int error_pkt;
+-				if (cc < 8+sizeof(struct iphdr)+8 ||
++				if ((size_t)cc < 8+sizeof(struct iphdr)+8 ||
+ 				    cc < 8+iph->ihl*4+8)
+ 					return 1;
+ 				if (icp1->type != ICMP_ECHO ||
+@@ -1152,7 +1174,7 @@
+ 
+ 	if ((options & F_NUMERIC) ||
+ 	    !(hp = gethostbyaddr((char *)&addr, 4, AF_INET)))
+-		sprintf(buf, "%s", inet_ntoa(*(struct in_addr *)&addr));
++		snprintf(buf, sizeof(buf), "%s", inet_ntoa(*(struct in_addr *)&addr));
+ 	else
+ 		snprintf(buf, sizeof(buf), "%s (%s)", hp->h_name,
+ 			 inet_ntoa(*(struct in_addr *)&addr));

@@ -141,6 +141,7 @@ main(int argc, char **argv)
 	source.sin_family = AF_INET;
 
 	preload = 1;
+
 	while ((ch = getopt(argc, argv, COMMON_OPTSTR "bRT:")) != EOF) {
 		switch(ch) {
 		case 'b':
@@ -258,7 +259,7 @@ main(int argc, char **argv)
 	}
 
 	if (source.sin_addr.s_addr == 0) {
-		int alen;
+		size_t alen;
 		struct sockaddr_in dst = whereto;
 
 		if (probe_fd < 0) {
@@ -484,7 +485,7 @@ main(int argc, char **argv)
 	}
 
 	if (datalen > 0xFFFF - 8 - optlen - 20) {
-		if (uid || datalen > sizeof(outpack)-8) {
+		if (uid || (size_t)datalen > sizeof(outpack)-8) {
 			fprintf(stderr, "Error: packet size %d is too large. Maximum is %d\n", datalen, 0xFFFF-8-20-optlen);
 			return(2);
 		}
@@ -492,7 +493,7 @@ main(int argc, char **argv)
 		fprintf(stderr, "WARNING: packet size %d is too large. Maximum is %d\n", datalen, 0xFFFF-8-20-optlen);
 	}
 
-	if (datalen >= sizeof(struct timeval))	/* can we time transfer */
+	if ((size_t)datalen >= sizeof(struct timeval))	/* can we time transfer */
 		timing = 1;
 	packlen = datalen + MAXIPLEN + MAXICMPLEN;
 	if (!(packet = (unsigned char *)malloc((unsigned int)packlen))) {
@@ -565,7 +566,7 @@ int receive_error_msg()
 	} else if (e->ee_origin == SO_EE_ORIGIN_ICMP) {
 		struct sockaddr_in *sin = (struct sockaddr_in*)(e+1);
 
-		if (res < sizeof(icmph) ||
+		if ((size_t)res < sizeof(icmph) ||
 		    target.sin_addr.s_addr != whereto.sin_addr.s_addr ||
 		    icmph.type != ICMP_ECHO ||
 		    icmph.un.echo.id != ident) {
@@ -641,7 +642,7 @@ int send_probe()
 		}
 	}
 
-  if(UINT_MAX - 8 < datalen) {
+  if(UINT_MAX - 8 < (size_t)datalen) {
     return(1);
   }
 	cc = datalen + 8;			/* skips ICMP portion */
@@ -730,7 +731,7 @@ parse_reply(struct msghdr *msg, int cc, void *addr, struct timeval *tv)
 				struct iphdr * iph = (struct  iphdr *)(&icp[1]);
 				struct icmphdr *icp1 = (struct icmphdr*)((unsigned char *)iph + iph->ihl*4);
 				int error_pkt;
-				if (cc < 8+sizeof(struct iphdr)+8 ||
+				if ((size_t)cc < 8+sizeof(struct iphdr)+8 ||
 				    cc < 8+iph->ihl*4+8)
 					return 1;
 				if (icp1->type != ICMP_ECHO ||
@@ -1173,7 +1174,7 @@ pr_addr(uint32_t addr)
 
 	if ((options & F_NUMERIC) ||
 	    !(hp = gethostbyaddr((char *)&addr, 4, AF_INET)))
-		sprintf(buf, "%s", inet_ntoa(*(struct in_addr *)&addr));
+		snprintf(buf, sizeof(buf), "%s", inet_ntoa(*(struct in_addr *)&addr));
 	else
 		snprintf(buf, sizeof(buf), "%s (%s)", hp->h_name,
 			 inet_ntoa(*(struct in_addr *)&addr));

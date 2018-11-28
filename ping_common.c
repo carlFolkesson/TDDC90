@@ -68,7 +68,7 @@ static void fill(char *patp)
 	int ii, jj, kk;
 	int pat[16];
 	char *cp;
-	char *bp = outpack+8;
+	unsigned char *bp = outpack+8;
 
 	for (cp = patp; *cp; cp++) {
 		if (!isxdigit(*cp)) {
@@ -250,12 +250,12 @@ int __schedule_exit(int next)
 
 	if (nreceived) {
 		waittime = 2 * tmax;
-		if (waittime < 1000*interval)
+		if (waittime < 1000*(size_t)interval)
 			waittime = 1000*interval;
 	} else
 		waittime = lingertime*1000;
 
-	if (next < 0 || next < waittime/1000)
+	if (next < 0 || (size_t)next < waittime/1000)
 		next = waittime/1000;
 
 	it.it_interval.tv_sec = 0;
@@ -397,7 +397,7 @@ resend:
 void sock_setbufs(int icmp_sock, int alloc)
 {
 	int rcvbuf, hold;
-	int tmplen = sizeof(hold);
+	size_t tmplen = sizeof(hold);
 
 	if (!sndbuf)
 		sndbuf = alloc;
@@ -470,7 +470,7 @@ void setup(int icmp_sock)
 
 	if (!(options & F_PINGFILLED)) {
 		int i;
-		char *p = outpack+8;
+		unsigned char *p = outpack+8;
 
 		/* Do not forget about case of small datalen,
 		 * fill timestamp area too!
@@ -662,7 +662,7 @@ int gather_statistics(uint8_t *ptr, int cc, uint16_t seq, int hops,
 	if (!csfailed)
 		acknowledge(seq);
 
-	if (timing && cc >= 8+sizeof(struct timeval)) {
+	if (timing && (size_t)cc >= 8+sizeof(struct timeval)) {
 		struct timeval tmp_tv;
 		memcpy(&tmp_tv, ptr, sizeof(tmp_tv));
 

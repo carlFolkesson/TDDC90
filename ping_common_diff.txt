@@ -1,0 +1,134 @@
+--- ping_common.c.org	2018-11-23 10:10:01.270389993 +0100
++++ ping_common.c	2018-11-28 09:22:41.424382732 +0100
+@@ -68,7 +68,7 @@
+ 	int ii, jj, kk;
+ 	int pat[16];
+ 	char *cp;
+-	char *bp = outpack+8;
++	unsigned char *bp = outpack+8;
+ 
+ 	for (cp = patp; *cp; cp++) {
+ 		if (!isxdigit(*cp)) {
+@@ -135,7 +135,7 @@
+ 			exit(2);
+ 		}
+ 
+-		if (interval < 0) {
++		if (interval <= 0) {
+ 			fprintf(stderr, "ping: bad timing interval.\n");
+ 			exit(2);
+ 		}
+@@ -243,12 +243,12 @@
+ 
+ 	if (nreceived) {
+ 		waittime = 2 * tmax;
+-		if (waittime < 1000*interval)
++		if (waittime < 1000*(size_t)interval)
+ 			waittime = 1000*interval;
+ 	} else
+ 		waittime = lingertime*1000;
+ 
+-	if (next < 0 || next < waittime/1000)
++	if (next < 0 || (size_t)next < waittime/1000)
+ 		next = waittime/1000;
+ 
+ 	it.it_interval.tv_sec = 0;
+@@ -261,7 +261,7 @@
+ 
+ static inline void update_interval(void)
+ {
+-	int est = rtt ? rtt/8 : interval*1000; 
++	int est = rtt ? rtt/8 : interval*1000;
+ 
+ 	interval = (est+rtt_addend+500)/1000;
+ 	if (uid && interval < MINUSERINTERVAL)
+@@ -282,7 +282,7 @@
+ 	static int tokens;
+ 	int i;
+ 
+-	/* Have we already sent enough? If we have, return an arbitrary positive value. */ 
++	/* Have we already sent enough? If we have, return an arbitrary positive value. */
+ 	if (exiting || (npackets && ntransmitted >= npackets && !deadline))
+ 		return 1000;
+ 
+@@ -390,7 +390,7 @@
+ void sock_setbufs(int icmp_sock, int alloc)
+ {
+ 	int rcvbuf, hold;
+-	int tmplen = sizeof(hold);
++	size_t tmplen = sizeof(hold);
+ 
+ 	if (!sndbuf)
+ 		sndbuf = alloc;
+@@ -463,7 +463,7 @@
+ 
+ 	if (!(options & F_PINGFILLED)) {
+ 		int i;
+-		char *p = outpack+8;
++		unsigned char *p = outpack+8;
+ 
+ 		/* Do not forget about case of small datalen,
+ 		 * fill timestamp area too!
+@@ -535,7 +535,7 @@
+ 		 * If next<=0 send now or as soon as possible. */
+ 
+ 		/* Technical part. Looks wicked. Could be dropped,
+-		 * if everyone used the newest kernel. :-) 
++		 * if everyone used the newest kernel. :-)
+ 		 * Its purpose is:
+ 		 * 1. Provide intervals less than resolution of scheduler.
+ 		 *    Solution: spinning.
+@@ -546,7 +546,7 @@
+ 			int recv_expected = in_flight();
+ 
+ 			/* If we are here, recvmsg() is unable to wait for
+-			 * required timeout. */ 
++			 * required timeout. */
+ 			if (1000*next <= 1000000/(int)HZ) {
+ 				/* Very short timeout... So, if we wait for
+ 				 * something, we sleep for MININTERVAL.
+@@ -626,7 +626,7 @@
+ 				not_ours = parse_reply(&msg, cc, addrbuf, recv_timep);
+ 			}
+ 
+-			/* See? ... someone runs another ping on this host. */ 
++			/* See? ... someone runs another ping on this host. */
+ 			if (not_ours)
+ 				install_filter();
+ 
+@@ -655,7 +655,7 @@
+ 	if (!csfailed)
+ 		acknowledge(seq);
+ 
+-	if (timing && cc >= 8+sizeof(struct timeval)) {
++	if (timing && (size_t)cc >= 8+sizeof(struct timeval)) {
+ 		struct timeval tmp_tv;
+ 		memcpy(&tmp_tv, ptr, sizeof(tmp_tv));
+ 
+@@ -712,7 +712,7 @@
+ 		int i;
+ 		uint8_t *cp, *dp;
+ 		printf("%d bytes from ", cc);
+-		printf(from);
++		printf("%s", from);
+ 		printf(": icmp_seq=%u", seq);
+ 
+ 		if (hops >= 0)
+@@ -788,7 +788,7 @@
+ 	putchar('\n');
+ 	fflush(stdout);
+ 	printf("--- ");
+-	printf(hostname);
++	printf("%s", hostname);
+ 	printf(" statistics ---\n");
+ 	printf("%ld packets transmitted, ", ntransmitted);
+ 	printf("%ld received", nreceived);
+@@ -822,7 +822,7 @@
+ 	}
+ 	if (pipesize > 1)
+ 		printf(", pipe %d", pipesize);
+-	if (ntransmitted > 1 && nreceived && 
++	if (ntransmitted > 1 && nreceived &&
+ 			(!interval || (options&(F_FLOOD|F_ADAPTIVE)))) {
+ 		int ipg = (1000000*(long long)tv.tv_sec+tv.tv_usec)/(ntransmitted-1);
+ 		printf(", ipg/ewma %d.%03d/%d.%03d ms",
