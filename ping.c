@@ -338,7 +338,7 @@ main(int argc, char **argv)
 		safe_strcpy(device, ifr.ifr_name);
 		if (ioctl(icmp_sock, SIOCGIFINDEX, &ifr) < 0) {
 		  fprintf(stderr, "ping: unknown iface ");
-		  fprintf(stderr, device);
+		  fprintf(stderr, "%s", device);
 		  fprintf(stderr, "\n");
 		  return(2);
 		}
@@ -501,7 +501,7 @@ main(int argc, char **argv)
 	}
 
 	printf("PING ");
-	printf(hostname);
+	printf("%s", hostname);
 	printf("(%s) ", inet_ntoa(whereto.sin_addr));
 	if (device || (options&F_STRICTSOURCE))
 		printf("from %s %s: ", inet_ntoa(source.sin_addr), device ? device : "");
