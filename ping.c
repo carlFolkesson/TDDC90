@@ -141,6 +141,7 @@ main(int argc, char **argv)
 	source.sin_family = AF_INET;
 
 	preload = 1;
+
 	while ((ch = getopt(argc, argv, COMMON_OPTSTR "bRT:")) != EOF) {
 		switch(ch) {
 		case 'b':
