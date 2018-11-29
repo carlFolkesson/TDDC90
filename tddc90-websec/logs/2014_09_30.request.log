@@ -1,0 +1,15 @@
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:43:16 +0000] "GET /dvwa/vulnerabilities/view_help.php?id=xss_r&security=low HTTP/1.1" 302 0 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:43:17 +0000] "GET /dvwa/login.php HTTP/1.1" 200 1224 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:43:19 +0000] "GET /dvwa/ HTTP/1.1" 302 0 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:43:20 +0000] "GET /dvwa/login.php HTTP/1.1" 200 1224 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:43:23 +0000] "POST /dvwa/login.php HTTP/1.1" 302 0 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:43:23 +0000] "GET /dvwa/index.php HTTP/1.1" 200 4704 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:43:25 +0000] "GET /dvwa/vulnerabilities/xss_r/ HTTP/1.1" 200 4453 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:43:27 +0000] "GET /dvwa/vulnerabilities/view_help.php?id=xss_r&security=low HTTP/1.1" 200 1997 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:44:32 +0000] "GET /dvwa/vulnerabilities/xss_r/?name=javascript HTTP/1.1" 200 4480 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:44:40 +0000] "GET /dvwa/vulnerabilities/xss_r/?name=javascript HTTP/1.1" 200 4480 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:44:50 +0000] "GET /dvwa/xss.php?name=javascript HTTP/1.1" 404 1398 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:44:56 +0000] "GET /dvwa/vulnerabilities/xss_r/?name=javascript HTTP/1.1" 200 4480 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:44:57 +0000] "GET /dvwa/vulnerabilities/xss_s/ HTTP/1.1" 200 4987 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:44:58 +0000] "GET /dvwa/vulnerabilities/xss_r/ HTTP/1.1" 200 4453 
+0:0:0:0:0:0:0:1%0 -  -  [30/Sep/2014:14:45:13 +0000] "GET /dvwa/vulnerabilities/xss_r/?name=%3Cscript%3Econsole.log%28%27test%27%29%3B%3C%2Fscript%3E HTTP/1.1" 200 4507 
