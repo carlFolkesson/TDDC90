@@ -232,7 +232,7 @@ main(int argc, char **argv)
 		}
 	}
 	while (argc > 0) {
-		safe_strcpy(*argv, target);
+		safe_strcpy(*argv, target, MAXHOSTNAMELEN);
 
 		bzero((char *)&whereto, sizeof(whereto));
 		whereto.sin_family = AF_INET;
@@ -249,7 +249,7 @@ main(int argc, char **argv)
 				return(2);
 			}
 			memcpy(&whereto.sin_addr, hp->h_addr, 4);
-			safe_strcpy(hp->h_name, hnamebuf);
+			safe_strcpy(hp->h_name, hnamebuf, MAXHOSTNAMELEN);
 			hostname = hnamebuf;
 		}
 		if (argc > 1)
@@ -268,7 +268,7 @@ main(int argc, char **argv)
 		}
 		if (device) {
 			memset(&ifr, 0, sizeof(ifr));
-			safe_strcpy(ifr.ifr_name, device);
+			safe_strcpy(device, ifr.ifr_name, IFNAMSIZ);
 			if (setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device)+1) == -1) {
 				if (IN_MULTICAST(ntohl(dst.sin_addr.s_addr))) {
 					struct ip_mreqn imr;
@@ -336,7 +336,7 @@ main(int argc, char **argv)
 
 	if (device) {
 		memset(&ifr, 0, sizeof(ifr));
-		safe_strcpy(device, ifr.ifr_name);
+		safe_strcpy(device, ifr.ifr_name, IFNAMSIZ);
 		if (ioctl(icmp_sock, SIOCGIFINDEX, &ifr) < 0) {
 		  fprintf(stderr, "ping: unknown iface ");
 		  fprintf(stderr, "%s", device);
